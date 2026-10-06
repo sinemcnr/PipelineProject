@@ -1,0 +1,19 @@
+﻿# Java derleme dosyalari
+*.class
+out/
+
+# IDE dosyalari
+.vs/
+.vscode/
+.idea/
+
+# Sistem dosyalari
+.DS_Store
+Thumbs.db
+
+# Kutuphaneler
+lib/*.jar
+
+# JaCoCo coverage dosyalari
+coverage/
+jacoco.exec
