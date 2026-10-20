@@ -1,107 +1,144 @@
 # LogFlow
-### Java Tabanli Log Isleme Sistemi
+### Java Tabanlı Log İşleme Sistemi
 
-LogFlow, log dosyalarini okumak, ayrıştırmak, filtrelemek
-ve islenen verileri farkli ciktilara aktarmak icin
-gelistirilmis Java tabanli bir uygulamadir.
+LogFlow, log dosyalarını okumak, ayrıştırmak, filtrelemek ve işlenen verileri farklı çıktılara aktarmak amacıyla geliştirilmiş Java tabanlı bir uygulamadır.
 
-Proje, Yazilim Mimarisi dersi kapsaminda
-artimli gelistirme yaklasimiyla hazirlanmistir.
+Proje, Yazılım Mimarisi dersi kapsamında **artımlı geliştirme yaklaşımıyla** hazırlanmıştır.
+
+Artım 4 ile uygulamaya YAML tabanlı yapılandırma desteği eklenmiş, işlem hatlarının Java kaynak kodu değiştirilmeden yapılandırılabilmesi sağlanmıştır.
 
 ---
 
-## 1. Projenin Amaci
+## 1. Projenin Amacı
 
-LogFlow projesinin temel amaci, log dosyalarinin
-moduler ve genisletilebilir bir mimariyle
-islenmesini saglamaktir.
+LogFlow projesinin temel amacı, log dosyalarının modüler, yeniden kullanılabilir ve genişletilebilir bir mimariyle işlenmesini sağlamaktır.
 
 Uygulama sayesinde:
 
-- Log dosyalari satir satir okunabilir.
-- Log satirlari yapilandirilmis nesnelere donusturulebilir.
-- Gecersiz log kayitlari tespit edilebilir.
-- Kayitlar belirli kosullara gore filtrelenebilir.
-- Istenen veri alanlari secilebilir.
-- Sonuclar konsola veya dosyaya aktarilabilir.
-- Veri isleme asamalari kolayca degistirilebilir.
+- Log dosyaları satır satır okunabilir.
+- Log satırları yapılandırılmış nesnelere dönüştürülebilir.
+- Geçersiz log kayıtları tespit edilebilir.
+- Kayıtlar belirli koşullara göre filtrelenebilir.
+- İstenen veri alanları seçilebilir.
+- Sonuçlar konsola veya dosyaya aktarılabilir.
+- Veri işleme aşamaları yeniden kullanılabilir.
+- Pipeline yapıları YAML dosyalarıyla tanımlanabilir.
+- Yapılandırma hataları işlem başlamadan tespit edilebilir.
+- Aynı Java uygulaması farklı yapılandırmalarla çalıştırılabilir.
 
 ---
 
-## 2. Kullanilan Teknolojiler
+## 2. Kullanılan Teknolojiler
 
-| Teknoloji | Kullanim Amaci |
+| Teknoloji | Kullanım Amacı |
 |---|---|
-| Java | Uygulama gelistirme |
+| Java | Uygulama geliştirme |
 | Java Records | Log verilerinin modellenmesi |
-| Java Generics | Tur guvenligi |
+| Java Generics | Tür güvenliği |
 | Java Streams ve Predicate | Veri filtreleme |
+| SnakeYAML 2.2 | YAML dosyalarını ayrıştırma |
 | JUnit 5 | Birim ve entegrasyon testleri |
 | JaCoCo | Kod kapsama analizi |
-| Git | Surum kontrolu |
-| GitHub | Proje paylasimi |
-| VS Code | Gelistirme ortami |
+| YAML | Pipeline yapılandırması |
+| Git | Sürüm kontrolü |
+| GitHub | Proje paylaşımı |
+| Visual Studio | Geliştirme ortamı |
+| PowerShell | Derleme ve çalıştırma |
+
+Uygulama Java 17 veya üzeri sürümle çalıştırılacak şekilde hazırlanmıştır.
 
 ---
 
-## 3. Mimari Yapi
+## 3. Mimari Yapı
 
-LogFlow, Source - Stage - Sink mimarisini kullanir.
+LogFlow, **Source - Stage - Sink** mimarisini kullanır.
 
-### Veri Akisi
+### 3.1. Temel Veri Akışı
 
-    FileLineSource
-          |
-          v
-      ParserStage
-          |
-          v
-    PredicateFilterStage
-          |
-          v
-     ProjectionStage
-          |
-          v
-        FileSink
+```text
+FileLineSource
+      |
+      v
+ParserStage
+      |
+      v
+PredicateFilterStage
+      |
+      v
+ProjectionStage
+      |
+      v
+FileSink
+```
 
-### Source
+### 3.2. Artım 4 Yapılandırma Mimarisi
 
-Verinin sisteme girisini saglar.
+```text
+YAML Configuration
+        |
+        v
+PipelineLoader
+        |
+        v
+StageRegistry
+        |
+        v
+StageFactory
+        |
+        v
+PipelineBuilder
+        |
+        v
+Pipeline
+        |
+        v
+Source -> Stages -> Sink
+        |
+        v
+Output File
+```
 
-FileLineSource, log dosyasini satir satir okur.
+### 3.3. Source
 
-### Stage
+Verinin sisteme girişini sağlar.
 
-Verinin islenmesinden sorumludur.
+**FileLineSource:** Log dosyasını satır satır okur.
 
-ParserStage:
-Ham log satirlarini LogRecord nesnelerine donusturur.
+### 3.4. Stage
 
-PredicateFilterStage:
-Belirtilen kosullara uyan kayitlari sonraki asamaya aktarir.
+Verinin işlenmesinden sorumludur.
 
-ProjectionStage:
-LogRecord nesnesinden yalnizca istenen alanlari secer.
+**ParserStage:** Ham log satırlarını LogRecord nesnelerine dönüştürür.
 
-### Sink
+**PredicateFilterStage:** Belirtilen koşullara uyan kayıtları sonraki aşamaya aktarır.
 
-Islenen verilerin ciktiya aktarilmasini saglar.
+**ProjectionStage:** LogRecord nesnesinden yalnızca istenen alanları seçer.
 
-ConsoleSink:
-Sonuclari konsolda gosterir.
+### 3.5. Sink
 
-FileSink:
-Sonuclari belirtilen dosyaya yazar.
+İşlenen verilerin çıktı ortamına aktarılmasını sağlar.
+
+**ConsoleSink:** Sonuçları konsolda gösterir.
+
+**FileSink:** Sonuçları belirtilen dosyaya yazar.
+
+### 3.6. Yapılandırma Bileşenleri
+
+**StageFactory:** Yapılandırma parametrelerinden Stage nesnesi oluşturur.
+
+**StageRegistry:** Aşama türlerini ilgili fabrika fonksiyonlarıyla eşleştirir.
+
+**PipelineLoader:** YAML dosyasını okur, parametreleri doğrular ve Pipeline nesnesini oluşturur.
 
 ---
 
-## 4. Proje Gelistirme Asamalari
+## 4. Proje Geliştirme Aşamaları
 
-### Artim 1 - Temel Pipeline Mimarisi
+### Artım 1 - Temel Pipeline Mimarisi
 
-Ilk asamada temel veri isleme altyapisi olusturulmustur.
+İlk aşamada temel veri işleme altyapısı oluşturulmuştur.
 
-Gelistirilen bilesenler:
+Geliştirilen bileşenler:
 
 - Source
 - Stage
@@ -111,101 +148,136 @@ Gelistirilen bilesenler:
 - FileLineSource
 - ConsoleSink
 
-Bu asamada Source - Stage - Sink mimarisi
-uygulanmistir.
+Bu aşamada Source - Stage - Sink mimarisi uygulanmıştır.
 
-### Artim 2 - Log Ayrıştırma ve Testler
+### Artım 2 - Log Ayrıştırma ve Testler
 
-Ikinci asamada log satirlarinin
-yapilandirilmis verilere donusturulmesi saglanmistir.
+İkinci aşamada log satırlarının yapılandırılmış verilere dönüştürülmesi sağlanmıştır.
 
-Eklenen ozellikler:
+Eklenen özellikler:
 
 - LogRecord veri modeli
 - ParserStage
-- CLF formatinda log ayrıştırma
-- Gecersiz satir sayimi
+- CLF formatında log ayrıştırma
+- Geçersiz satır sayımı
 - JUnit birim testleri
 - Pipeline testleri
 - JaCoCo kod kapsama analizi
 
-Artim 2 calismasinda JaCoCo satir kapsama
-orani %76,24 olarak olculmustur.
+Artım 2 çalışmasında JaCoCo satır kapsama oranı **%76,24** olarak ölçülmüştür.
 
-### Artim 3 - Filtreleme ve Projeksiyon
+### Artım 3 - Filtreleme ve Projeksiyon
 
-Ucuncu asamada pipeline mimarisi
-yeni bilesenlerle genisletilmistir.
+Üçüncü aşamada pipeline mimarisi yeni bileşenlerle genişletilmiştir.
 
-Eklenen ozellikler:
+Eklenen özellikler:
 
 - PredicateFilterStage
 - ProjectionStage
 - FileSink
 - PipelineBuilder
-- Komut satiri parametreleri
-- Filtre siralamasi deneyi
+- Komut satırı parametreleri
+- Filtre sıralaması deneyi
 - Yeni birim ve entegrasyon testleri
-- ARCHITECTURE.md dokumantasyonu
+- ARCHITECTURE.md dokümantasyonu
+
+### Artım 4 - YAML Tabanlı Yapılandırma Sistemi
+
+Dördüncü aşamada işlem hattının tanımı Java kodundan ayrılarak YAML dosyalarına taşınmıştır.
+
+Eklenen özellikler:
+
+- YAML yapılandırma desteği
+- SnakeYAML kütüphanesi
+- StageFactory
+- StageRegistry
+- PipelineLoader
+- `--config` komut satırı parametresi
+- Dinamik pipeline oluşturma
+- Parametre doğrulama
+- Fail Fast hata yönetimi
+- Üç farklı YAML yapılandırması
+- Beş otomatik yapılandırma testi
+
+Artım 4 sayesinde aynı derlenmiş Java uygulaması, farklı YAML dosyalarıyla çalıştırılabilir.
 
 ---
 
-## 5. Proje Klasor Yapisi
+## 5. Proje Klasör Yapısı
 
-    LogFlow/
-    |
-    |-- src/
-    |   |-- Main.java
-    |   |-- Source.java
-    |   |-- Stage.java
-    |   |-- Sink.java
-    |   |-- Emitter.java
-    |   |-- Pipeline.java
-    |   |-- PipelineBuilder.java
-    |   |-- FileLineSource.java
-    |   |-- ParserStage.java
-    |   |-- PredicateFilterStage.java
-    |   |-- ProjectionStage.java
-    |   |-- ConsoleSink.java
-    |   |-- FileSink.java
-    |   |-- LogRecord.java
-    |   |-- FilterOrderExperiment.java
-    |
-    |-- test/
-    |   |-- ParserStageTest.java
-    |   |-- PipelineTest.java
-    |   |-- PredicateFilterStageTest.java
-    |   |-- ProjectionStageTest.java
-    |   |-- FileSinkTest.java
-    |   |-- PipelineIntegrationTest.java
-    |
-    |-- data/
-    |   |-- access-small.log
-    |   |-- filter-experiment.log
-    |
-    |-- lib/
-    |   |-- junit-platform-console-standalone-6.1.3.jar
-    |
-    |-- out/
-    |
-    |-- README.md
-    |-- CHANGELOG.md
-    |-- ARCHITECTURE.md
+```text
+LogFlow/
+|
+|-- src/
+|   |-- Main.java
+|   |-- Source.java
+|   |-- Stage.java
+|   |-- Sink.java
+|   |-- Emitter.java
+|   |-- Pipeline.java
+|   |-- PipelineBuilder.java
+|   |-- FileLineSource.java
+|   |-- ParserStage.java
+|   |-- PredicateFilterStage.java
+|   |-- ProjectionStage.java
+|   |-- ConsoleSink.java
+|   |-- FileSink.java
+|   |-- LogRecord.java
+|   |-- FilterOrderExperiment.java
+|   |-- StageException.java
+|   |-- StageFactory.java
+|   |-- StageRegistry.java
+|   |-- PipelineLoader.java
+|
+|-- test/
+|   |-- ParserStageTest.java
+|   |-- PipelineTest.java
+|   |-- PredicateFilterStageTest.java
+|   |-- ProjectionStageTest.java
+|   |-- FileSinkTest.java
+|   |-- PipelineIntegrationTest.java
+|   |-- PipelineLoaderTest.java
+|
+|-- configs/
+|   |-- error-report.yaml
+|   |-- api-traffic.yaml
+|   |-- bandwidth-by-client.yaml
+|
+|-- data/
+|   |-- access-small.log
+|   |-- filter-experiment.log
+|
+|-- lib/
+|   |-- junit-platform-console-standalone-6.1.3.jar
+|   |-- snakeyaml-2.2.jar
+|
+|-- output/
+|   |-- errors.txt
+|   |-- api-traffic.txt
+|   |-- bandwidth-by-client.txt
+|
+|-- out/
+|
+|-- README.md
+|-- CHANGELOG.md
+|-- ARCHITECTURE.md
+|-- .gitignore
+```
 
-Not: out klasoru derleme sirasinda olusturulur.
-Diger yardimci dosyalar proje surumune gore degisebilir.
+**Not:** `out` klasörü derleme sırasında oluşturulur. `output` klasöründeki dosyalar ise uygulama çalıştırıldığında üretilir.
+
+Test amacıyla oluşturulan `invalid-stage.yaml`, `missing-param.yaml`, `wrong-type.yaml` ve `empty-pipeline.yaml` dosyaları isteğe bağlı olarak saklanabilir.
 
 ---
 
-## 6. PipelineBuilder Kullanimi
+## 6. PipelineBuilder Kullanımı
 
-Artim 3 ile eklenen PipelineBuilder,
-pipeline asamalarinin fluent API ile
-olusturulmasini saglar.
+Artım 3 ile eklenen PipelineBuilder, işlem hattı aşamalarının Fluent API yaklaşımıyla oluşturulmasını sağlar.
 
-Ornek Java kodu:
+Örnek Java kodu:
 
-    Pipeline pipeline = PipelineBuilder
+```java
+Pipeline pipeline = PipelineBuilder
         .from(new FileLineSource(inputFile))
         .via(new ParserStage())
         .via(new PredicateFilterStage(
@@ -216,91 +288,335 @@ Ornek Java kodu:
         ))
         .to(new FileSink<>(outputFile));
 
-    pipeline.run();
+pipeline.run();
+```
 
-Bu yaklasim sayesinde veri isleme
-asamalari okunabilir ve genisletilebilir
-bir sekilde birlestirilebilir.
+Bu yaklaşım sayesinde veri işleme aşamaları okunabilir ve genişletilebilir bir şekilde birleştirilir.
 
----
-
-## 7. Uygulamanin Derlenmesi
-
-Projenin ana klasorunde terminali acin.
-
-Asagidaki komutu calistirin:
-
-    javac -d out src\*.java
-
-Bu komut Java kaynak dosyalarini derler
-ve out klasorune kaydeder.
+Artım 4 kapsamında PipelineBuilder, PipelineLoader tarafından dinamik olarak kullanılmaktadır.
 
 ---
 
-## 8. Uygulamanin Calistirilmasi
+## 7. Kurulum ve Gereksinimler
 
-Temel kullanim:
+### 7.1. Gereksinimler
 
-    java -cp out Main data\access-small.log
+- Java JDK 17 veya üzeri
+- PowerShell veya uyumlu terminal
+- SnakeYAML 2.2
+- JUnit testleri için JUnit Platform Console Standalone
 
-Durum koduna gore filtreleme:
+Java sürümünü kontrol etmek için:
 
-    java -cp out Main data\access-small.log --min-status 400
+```powershell
+java -version
+javac -version
+```
 
-URL yoluna gore filtreleme:
+### 7.2. SnakeYAML Kurulumu
 
-    java -cp out Main data\access-small.log --path-prefix /api
+Projenin ana klasöründe terminal açılır.
 
-Alan secimi:
+Gerekli klasörler oluşturulur:
 
-    java -cp out Main data\access-small.log --fields clientIp,status,path
+```powershell
+New-Item -ItemType Directory -Force -Path lib,out,output
+```
 
-Tum parametrelerle kullanim:
+SnakeYAML kütüphanesi indirilir:
 
-    java -cp out Main data\access-small.log --min-status 400 --path-prefix /api --fields clientIp,status,path --output output.log
+```powershell
+Invoke-WebRequest -Uri "https://repo.maven.apache.org/maven2/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar" -OutFile "lib\snakeyaml-2.2.jar"
+```
+
+Bu işlemden sonra `lib` klasöründe `snakeyaml-2.2.jar` dosyası bulunmalıdır.
 
 ---
 
-## 9. Komut Satiri Parametreleri
+## 8. Uygulamanın Derlenmesi
 
-| Parametre | Aciklama |
+Projenin ana klasöründe terminal açılır.
+
+Artım 4 ile SnakeYAML bağımlılığı eklendiğinden derleme komutu güncellenmiştir.
+
+```powershell
+javac -cp "lib/*" -d out src\*.java
+```
+
+Bu komut Java kaynak dosyalarını derler ve `out` klasörüne kaydeder.
+
+Derleme başarılı olduğunda uygulama çalıştırılabilir.
+
+---
+
+## 9. Uygulamanın Çalıştırılması
+
+### 9.1. Temel Kullanım
+
+```powershell
+java -cp "out;lib/*" Main data\access-small.log
+```
+
+### 9.2. Durum Koduna Göre Filtreleme
+
+```powershell
+java -cp "out;lib/*" Main data\access-small.log --min-status 400
+```
+
+### 9.3. URL Yoluna Göre Filtreleme
+
+```powershell
+java -cp "out;lib/*" Main data\access-small.log --path-prefix /api
+```
+
+### 9.4. Alan Seçimi
+
+```powershell
+java -cp "out;lib/*" Main data\access-small.log --fields clientIp,status,path
+```
+
+### 9.5. Tüm Parametrelerle Kullanım
+
+```powershell
+java -cp "out;lib/*" Main data\access-small.log --min-status 400 --path-prefix /api --fields clientIp,status,path --output output.log
+```
+
+### 9.6. YAML Yapılandırmasıyla Çalıştırma
+
+Artım 4 kapsamında eklenen `--config` parametresi kullanılır.
+
+```powershell
+java -cp "out;lib/*" Main --config configs/error-report.yaml
+```
+
+Bu komut belirtilen YAML dosyasını okuyarak işlem hattını oluşturur ve çalıştırır.
+
+---
+
+## 10. Komut Satırı Parametreleri
+
+| Parametre | Açıklama |
 |---|---|
-| --min-status | Minimum HTTP durum kodu |
-| --path-prefix | URL yolu on eki |
-| --fields | Ciktiya aktarilacak alanlar |
-| --output | Cikti dosyasinin adi |
+| `--min-status` | Minimum HTTP durum kodu |
+| `--path-prefix` | URL yolu ön eki |
+| `--fields` | Çıktıya aktarılacak alanlar |
+| `--output` | Çıktı dosyasının adı |
+| `--config` | YAML yapılandırma dosyasının yolu |
 
-Ornek:
+### Örnek
 
-    --min-status 400
+```powershell
+java -cp "out;lib/*" Main --config configs/error-report.yaml
+```
 
-Bu parametre HTTP durum kodu
-400 ve uzeri olan kayitlari secer.
-
-Ornek:
-
-    --path-prefix /api
-
-Bu parametre URL yolu /api ile
-baslayan kayitlari secer.
+YAML dosyası değiştirilerek farklı işlem hatları çalıştırılabilir.
 
 ---
 
-## 10. Birim ve Entegrasyon Testleri
+## 11. YAML Yapılandırma Sistemi
 
-LogFlow projesinde JUnit kullanilmaktadir.
+Artım 4 kapsamında işlem hatları YAML dosyaları üzerinden tanımlanabilir.
 
-### Testleri Derleme
+### 11.1. YAML Yapılandırma Yapısı
 
-    javac -cp "lib\junit-platform-console-standalone-6.1.3.jar;out" -d out test\*.java
+Temel yapı:
 
-### Testleri Calistirma
+```yaml
+pipeline:
+  name: error-report
 
-    java -jar lib\junit-platform-console-standalone-6.1.3.jar execute --class-path out --scan-class-path
+  source:
+    type: file
+    params:
+      path: data/access-small.log
 
-### Test Dosyalari
+  stages:
+    - type: parse
+      params:
+        format: clf
 
-| Test Sinifi | Test Sayisi |
+    - type: filter
+      params:
+        field: status
+        op: ">="
+        value: 400
+
+    - type: project
+      params:
+        fields:
+          - timestamp
+          - clientIp
+          - status
+          - path
+
+  sink:
+    type: file
+    params:
+      path: output/errors.txt
+```
+
+### 11.2. Desteklenen Aşamalar
+
+| Aşama | Görevi |
+|---|---|
+| parse | Log satırlarını ayrıştırma |
+| filter | Belirli koşullara göre filtreleme |
+| project | Seçilen alanları çıktı olarak üretme |
+
+### 11.3. Desteklenen Filtreler
+
+Mevcut YAML yükleyicisi aşağıdaki filtre işlemlerini destekler:
+
+**Status filtresi:**
+
+```yaml
+field: status
+op: ">="
+value: 400
+```
+
+**Path filtresi:**
+
+```yaml
+field: path
+op: startsWith
+value: /api
+```
+
+### 11.4. Yapılandırma Doğrulama
+
+PipelineLoader şu durumları kontrol eder:
+
+- Eksik zorunlu parametre
+- Yanlış parametre türü
+- Bilinmeyen aşama türü
+- Boş aşama listesi
+- Desteklenmeyen kaynak türü
+- Desteklenmeyen çıktı türü
+- Desteklenmeyen filtre işlemi
+- Geçersiz aşama sıralaması
+
+Geçersiz yapılandırmalar, veri işleme başlamadan reddedilir.
+
+Bu yaklaşım **Fail Fast** olarak adlandırılır.
+
+---
+
+## 12. Hazır YAML Yapılandırmaları
+
+Artım 4 kapsamında üç farklı yapılandırma hazırlanmıştır.
+
+### 12.1. Hata Raporu
+
+Dosya:
+
+`configs/error-report.yaml`
+
+HTTP durum kodu 400 ve üzerindeki kayıtları seçer.
+
+Çalıştırma:
+
+```powershell
+java -cp "out;lib/*" Main --config configs/error-report.yaml
+```
+
+Çıktıyı görüntüleme:
+
+```powershell
+Get-Content output/errors.txt
+```
+
+Doğrulanan örnek:
+
+```text
+{timestamp=2026-09-29T10:15:05Z, clientIp=10.0.0.5, status=403, path=/admin}
+```
+
+### 12.2. API Trafiği Raporu
+
+Dosya:
+
+`configs/api-traffic.yaml`
+
+URL yolu `/api` ile başlayan kayıtları seçer.
+
+Çalıştırma:
+
+```powershell
+java -cp "out;lib/*" Main --config configs/api-traffic.yaml
+```
+
+Çıktıyı görüntüleme:
+
+```powershell
+Get-Content output/api-traffic.txt
+```
+
+Mevcut küçük veri setinde `/api` ile başlayan kayıt bulunmadığından çıktı boş oluşmuştur.
+
+### 12.3. İstemci Bazında Bant Genişliği Verileri
+
+Dosya:
+
+`configs/bandwidth-by-client.yaml`
+
+Her log kaydından istemci IP adresini ve aktarılan bayt miktarını seçer.
+
+Çalıştırma:
+
+```powershell
+java -cp "out;lib/*" Main --config configs/bandwidth-by-client.yaml
+```
+
+Çıktıyı görüntüleme:
+
+```powershell
+Get-Content output/bandwidth-by-client.txt
+```
+
+Doğrulanan çıktı:
+
+```text
+{clientIp=127.0.0.1, bytes=512}
+{clientIp=192.168.1.10, bytes=245}
+{clientIp=10.0.0.5, bytes=128}
+{clientIp=172.16.0.8, bytes=1024}
+{clientIp=192.168.1.15, bytes=768}
+```
+
+Bu yapılandırma IP ve bayt alanlarını çıkarır. IP adresine göre toplam bayt hesabı yapmaz.
+
+### 12.4. Yapılandırmaların Karşılaştırılması
+
+| Yapılandırma | İşlem | Çıktı kaydı |
+|---|---|---:|
+| error-report | Status filtreleme | 1 |
+| api-traffic | Path filtreleme | 0 |
+| bandwidth-by-client | Alan seçimi | 5 |
+
+Üç yapılandırma da aynı derlenmiş Java uygulamasıyla çalıştırılmıştır.
+
+---
+
+## 13. Birim ve Entegrasyon Testleri
+
+LogFlow projesinde Artım 1, 2 ve 3 kapsamında JUnit testleri geliştirilmiştir.
+
+### 13.1. JUnit Testlerini Derleme
+
+```powershell
+javac -cp "lib/*;out" -d out test\*.java
+```
+
+### 13.2. JUnit Testlerini Çalıştırma
+
+```powershell
+java -jar lib\junit-platform-console-standalone-6.1.3.jar execute --class-path "out;lib/snakeyaml-2.2.jar" --scan-class-path
+```
+
+### 13.3. Test Dosyaları
+
+| Test sınıfı | Test sayısı |
 |---|---:|
 | ParserStageTest | 8 |
 | PipelineTest | 1 |
@@ -310,137 +626,240 @@ LogFlow projesinde JUnit kullanilmaktadir.
 | PipelineIntegrationTest | 1 |
 | Toplam | 32 |
 
-### Dogrulanan Test Sonucu
-
-Emine'nin calistirdigi test paketinde:
+Önceki JUnit çalıştırmasında:
 
 - Bulunan test: 32
-- Baslatilan test: 32
-- Basarili test: 32
-- Basarisiz test: 0
+- Başlatılan test: 32
+- Başarılı test: 32
+- Başarısız test: 0
 
-Tum testler basariyla tamamlanmistir.
+Bu sonuç Artım 3 kapsamında doğrulanmıştır.
 
 ---
 
-## 11. Filtre Siralamasi Deneyi
+## 14. Artım 4 - PipelineLoader Testleri
 
-Artim 3 kapsaminda filtre siralamasinin
-islem maliyetine etkisi incelenmistir.
+Artım 4 kapsamında `PipelineLoaderTest.java` sınıfı geliştirilmiştir.
 
-Karsilastirilan siralamalar:
+Bu sınıf, YAML yapılandırma sisteminin doğru ve hatalı durumlarını test eder.
 
-1. Status Filter -> Path Filter
-2. Path Filter -> Status Filter
+### 14.1. Test Senaryoları
 
-Deney icin 200 kayitlik log dosyasi
-kullanilmistir.
+| Test | Beklenen davranış |
+|---|---|
+| Geçerli yapılandırma | Pipeline oluşturulmalı ve çalışmalı |
+| Bilinmeyen aşama | Yapılandırma reddedilmeli |
+| Eksik parametre | Hata mesajı oluşturulmalı |
+| Yanlış parametre türü | Geçersiz veri türü reddedilmeli |
+| Boş pipeline | Boş aşama listesi reddedilmeli |
 
-### Deneyi Calistirma
+### 14.2. Testleri Derleme
 
-    java -cp out FilterOrderExperiment data\filter-experiment.log
+```powershell
+javac -cp "out;lib/*" -d out test\PipelineLoaderTest.java
+```
 
-### Deney Sonuclari
+### 14.3. Testleri Çalıştırma
 
-| Olcum | Status -> Path | Path -> Status |
+```powershell
+java -cp "out;lib/*" PipelineLoaderTest
+```
+
+### 14.4. Doğrulanan Test Sonucu
+
+```text
+=== LogFlow PipelineLoader Testleri ===
+[PASS] Gecerli yapilandirma
+[PASS] Bilinmeyen asama turu
+[PASS] Eksik parametre
+[PASS] Yanlis parametre turu
+[PASS] Bos pipeline
+
+Basarili test: 5
+Basarisiz test: 0
+```
+
+Beş testin tamamı başarıyla sonuçlanmıştır.
+
+Bu testler bağımsız Java test çalıştırıcısıyla gerçekleştirilmiştir ve JUnit gerektirmemektedir.
+
+---
+
+## 15. Hata Yönetimi
+
+Artım 4 kapsamında hatalı yapılandırmalar işlem başlamadan kontrol edilir.
+
+### 15.1. Bilinmeyen Aşama Türü
+
+```text
+Yapilandirma/parametre hatasi: Bilinmeyen asama turu: unknown
+```
+
+### 15.2. Eksik Parametre
+
+```text
+Yapilandirma/parametre hatasi: Zorunlu parametre eksik: value
+```
+
+### 15.3. Yanlış Parametre Türü
+
+```text
+Yapilandirma/parametre hatasi: status filtresi icin value tam sayi olmali.
+```
+
+### 15.4. Boş Pipeline
+
+```text
+Yapilandirma/parametre hatasi: Pipeline bos olamaz.
+```
+
+Bu hata mesajları terminal üzerinde doğrulanmıştır.
+
+Hatalı yapılandırmalar için işlem hattı başlatılmaz.
+
+---
+
+## 16. Filtre Sıralaması Deneyi
+
+Artım 3 kapsamında filtre sıralamasının işlem maliyetine etkisi incelenmiştir.
+
+Karşılaştırılan sıralamalar:
+
+1. Status Filter → Path Filter
+2. Path Filter → Status Filter
+
+Deney için 200 kayıtlık log dosyası kullanılmıştır.
+
+### 16.1. Deneyi Çalıştırma
+
+```powershell
+java -cp "out;lib/*" FilterOrderExperiment data\filter-experiment.log
+```
+
+### 16.2. Deney Sonuçları
+
+| Ölçüm | Status → Path | Path → Status |
 |---|---:|---:|
-| Girdi kaydi | 200 | 200 |
-| Cikti kaydi | 20 | 20 |
-| Status kontrolu | 200 | 100 |
-| Path kontrolu | 40 | 200 |
+| Girdi kaydı | 200 | 200 |
+| Çıktı kaydı | 20 | 20 |
+| Status kontrolü | 200 | 100 |
+| Path kontrolü | 40 | 200 |
 | Toplam kontrol | 240 | 300 |
-| Ayni cikti | Evet | Evet |
+| Aynı çıktı | Evet | Evet |
 
-### Degerlendirme
+### 16.3. Değerlendirme
 
-Iki filtre siralamasi da ayni
-20 log kaydini uretmistir.
+İki filtre sıralaması da aynı 20 log kaydını üretmiştir.
 
-Status filtresinin once kullanildigi
-siralama 240 kontrol yapmistir.
+Status filtresinin önce kullanıldığı sıralama 240 kontrol yapmıştır.
 
-Path filtresinin once kullanildigi
-siralama 300 kontrol yapmistir.
+Path filtresinin önce kullanıldığı sıralama 300 kontrol yapmıştır.
 
-Birinci siralama, toplam filtre
-kontrol sayisini %20 azaltmistir.
+Birinci sıralama toplam filtre kontrol sayısını %20 azaltmıştır.
 
-Tek calistirmadaki sure olcumleri
-kesin performans ustunlugu gostermedigi
-icin filtre kontrol sayilari
-temel karsilastirma olcutu olarak
-degerlendirilmistir.
+Tek çalıştırmadaki süre ölçümleri kesin performans üstünlüğü göstermediği için filtre kontrol sayıları temel karşılaştırma ölçütü olarak değerlendirilmiştir.
 
-Ayrintili deney sonuclari
-ARCHITECTURE.md dosyasinda yer almaktadir.
+Ayrıntılı deney sonuçları `ARCHITECTURE.md` dosyasında yer almaktadır.
 
 ---
 
-## 12. Mimari Tasarim Ilkeleri
+## 17. Mimari Tasarım İlkeleri
 
-LogFlow projesinde asagidaki
-tasarim ilkeleri esas alinmistir.
+### 17.1. Single Responsibility Principle
 
-### Single Responsibility Principle
+Her bileşen belirli bir işlemden sorumludur.
 
-Her bilesen belirli bir islemden
-sorumludur.
+ParserStage ayrıştırma, PredicateFilterStage filtreleme, ProjectionStage alan seçimi ve FileSink dosyaya yazma işlemini gerçekleştirir.
 
-### Open/Closed Principle
+StageRegistry kayıt yönetimini, PipelineLoader yapılandırma yüklemeyi gerçekleştirir.
 
-Yeni Stage siniflari eklenerek
-pipeline genisletilebilir.
+### 17.2. Open/Closed Principle
 
-### Reusability
+Yeni Stage sınıfları ve fabrika fonksiyonları eklenerek sistem genişletilebilir.
 
-Filtreleme ve projeksiyon asamalari
-farkli parametrelerle yeniden kullanilabilir.
+Mevcut Pipeline sınıfının her yeni aşama için değiştirilmesi gerekmez.
 
-### Type Safety
+### 17.3. Reusability
 
-PipelineBuilder, asamalar arasinda
-tur uyumlulugunun korunmasina yardimci olur.
+Filtreleme ve projeksiyon aşamaları farklı parametrelerle yeniden kullanılabilir.
 
-### Resource Management
+### 17.4. Type Safety
 
-FileSink, open() ve close()
-metotlariyla dosya kaynaklarini yonetir.
+PipelineBuilder, Java kaynak kodunda generic tür kontrolüne yardımcı olur.
+
+YAML üzerinden oluşturulan dinamik pipeline yapısında tür güvenliği temel aşama sıralaması kontrolleriyle sınırlıdır.
+
+### 17.5. Resource Management
+
+FileSink, `open()` ve `close()` metotlarıyla dosya kaynaklarını yönetir.
+
+Pipeline, aşamaların yaşam döngüsünü kontrol eder.
+
+### 17.6. Separation of Concerns
+
+YAML dosyaları işlem hattının tanımını içerir.
+
+Java sınıfları veri işleme davranışını gerçekleştirir.
+
+Bu sayede yapılandırma ve uygulama mantığı birbirinden ayrılmıştır.
 
 ---
 
-## 13. Dokumantasyon
+## 18. Dokümantasyon
 
-Proje dokumantasyonu:
+Proje dokümantasyonu:
 
-- README.md: Kurulum, kullanim ve genel bilgiler
-- CHANGELOG.md: Surumlere gore degisiklikler
-- ARCHITECTURE.md: Mimari kararlar ve deney sonuclari
+| Dosya | Açıklama |
+|---|---|
+| README.md | Kurulum, kullanım ve genel bilgiler |
+| CHANGELOG.md | Sürümlere göre değişiklikler |
+| ARCHITECTURE.md | Mimari kararlar, yapılandırma sistemi ve deney sonuçları |
 
 ---
 
-## 14. Surumler
+## 19. Sürümler
 
-| Surum | Aciklama |
+| Sürüm | Açıklama |
 |---|---|
 | v1 | Temel pipeline mimarisi |
 | v2 | LogRecord, ParserStage ve testler |
 | v3 | Filtreleme, projeksiyon, FileSink ve PipelineBuilder |
+| v4 | YAML yapılandırması, StageRegistry, StageFactory, PipelineLoader ve testler |
 
-v3 etiketi, son Git islemleri tamamlandiginda
-olusturulacaktir.
+Artım 4 geliştirmeleri tamamlanmış ve beş otomatik yapılandırma testi başarıyla çalıştırılmıştır.
+
+GitHub üzerinde `v4` etiketi oluşturulması teslim sürecinde gerçekleştirilecektir.
 
 ---
 
-## 15. Sonuc
+## 20. Bilinen Sınırlamalar
 
-LogFlow, artimli gelistirme yaklasimiyla
-olusturulmus moduler bir log isleme sistemidir.
+Mevcut uygulamanın bazı sınırlamaları bulunmaktadır:
 
-Artim 1'de temel pipeline altyapisi,
-Artim 2'de log ayrıştırma ve test altyapisi,
-Artim 3'te ise filtreleme, projeksiyon,
-dosyaya yazma ve fluent API
-ozellikleri gelistirilmistir.
+- YAML yapılandırmasında yalnızca kayıtlı aşama türleri kullanılabilir.
+- İlk aşama parse olmak zorundadır.
+- Project aşamasından sonra başka aşama eklenemez.
+- Dinamik aşamalar için tam tür güvenliği kontrolü bulunmamaktadır.
+- API filtreleme senaryosu eşleşen test verileriyle ayrıca doğrulanmalıdır.
+- Bant genişliği yapılandırması toplam bayt hesabı yapmamaktadır.
+- Yapılandırma doğrulama sistemi yeni parametre ve aşama türleriyle genişletilebilir.
 
-Proje, yeni veri isleme asamalarinin
-eklenmesine uygun bir mimari sunmaktadir.
+---
+
+## 21. Sonuç
+
+LogFlow, artımlı geliştirme yaklaşımıyla oluşturulmuş modüler bir log işleme sistemidir.
+
+Artım 1'de temel pipeline altyapısı geliştirilmiştir.
+
+Artım 2'de log ayrıştırma ve test altyapısı eklenmiştir.
+
+Artım 3'te filtreleme, projeksiyon, dosyaya yazma ve Fluent API özellikleri geliştirilmiştir.
+
+Artım 4'te YAML tabanlı yapılandırma sistemi, StageFactory, StageRegistry ve PipelineLoader bileşenleri eklenmiştir.
+
+Üç farklı YAML yapılandırması aynı derlenmiş Java uygulamasıyla çalıştırılmıştır.
+
+Beş otomatik yapılandırma testi başarıyla tamamlanmıştır.
+
+Böylece LogFlow, farklı işlem hatlarının kaynak kod değiştirilmeden tanımlanabildiği, modüler, yeniden kullanılabilir ve genişletilebilir bir log işleme sistemine dönüştürülmüştür.

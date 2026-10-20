@@ -1,6 +1,4 @@
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class Main {
 
@@ -11,116 +9,158 @@ public class Main {
             return;
         }
 
-        String inputFile = args[0];
-        String outputFile = "output.log";
-        Integer minStatus = null;
-        String pathPrefix = null;
-        String[] fields = {
-                "timestamp", "clientIp", "method",
-                "path", "status", "bytes"
-        };
-
         try {
-            for (int i = 1; i < args.length; i++) {
+            // 4. aşama: YAML yapılandırmasıyla çalıştırma
+            if ("--config".equals(args[0])) {
 
-                switch (args[i]) {
-                    case "--min-status":
-                        minStatus = Integer.parseInt(
-                                requireValue(args, ++i)
-                        );
-                        break;
-
-                    case "--path-prefix":
-                        pathPrefix = requireValue(args, ++i);
-                        break;
-
-                    case "--fields":
-                        fields = Arrays.stream(
-                                requireValue(args, ++i).split(",")
-                        ).map(String::trim).toArray(String[]::new);
-                        break;
-
-                    case "--output":
-                        outputFile = requireValue(args, ++i);
-                        break;
-
-                    default:
-                        throw new IllegalArgumentException(
-                                "Bilinmeyen parametre: " + args[i]
-                        );
+                if (args.length != 2) {
+                    throw new IllegalArgumentException(
+                        "Kullanim: java -cp out Main --config <dosya.yaml>"
+                    );
                 }
-            }
 
-            ParserStage parser = new ParserStage();
+                PipelineLoader loader = new PipelineLoader();
+                Pipeline pipeline = loader.load(args[1]);
 
-            PipelineBuilder<LogRecord> builder =
-                    PipelineBuilder
-                            .from(new FileLineSource(inputFile))
-                            .via(parser);
+                pipeline.run();
 
-            if (minStatus != null) {
-                final int threshold = minStatus;
-
-                builder = builder.via(
-                        new PredicateFilterStage(
-                                r -> r.status() >= threshold
-                        )
+                System.out.println(
+                    "Yapilandirma basariyla yuklendi: " + args[1]
                 );
+                System.out.println("Pipeline basariyla calisti.");
+                return;
             }
 
-            if (pathPrefix != null) {
-                final String prefix = pathPrefix;
-
-                builder = builder.via(
-                        new PredicateFilterStage(
-                                r -> r.path().startsWith(prefix)
-                        )
-                );
-            }
-
-            Pipeline pipeline = builder
-                    .via(new ProjectionStage(fields))
-                    .to(new FileSink<>(outputFile));
-
-            pipeline.run();
-
-            System.out.println(
-                    "Islem tamamlandi. Cikti: " + outputFile
-            );
-
-            System.out.println(
-                    "Toplam hatali satir sayisi: "
-                            + parser.getErrorCount()
-            );
+            // 3. aşama: Eski komut satırı desteği
+            runLegacy(args);
 
         } catch (IllegalArgumentException e) {
-            System.err.println("Parametre hatasi: " + e.getMessage());
-            printUsage();
-
+            System.err.println(
+                "Yapilandirma/parametre hatasi: " + e.getMessage()
+            );
         } catch (RuntimeException e) {
             System.err.println(
-                    "Calistirma hatasi: " + e.getMessage()
+                "Calistirma hatasi: " + e.getMessage()
             );
         }
     }
 
-    private static String requireValue(String[] args, int index) {
-        if (index >= args.length
-                || args[index].startsWith("--")) {
-            throw new IllegalArgumentException(
-                    "Parametre degeri eksik."
+    private static void runLegacy(String[] args) {
+
+        String inputFile = args[0];
+        String outputFile = "output.log";
+
+        Integer minStatus = null;
+        String pathPrefix = null;
+
+        String[] fields = {
+            "timestamp", "clientIp", "method",
+            "path", "status", "bytes"
+        };
+
+        for (int i = 1; i < args.length; i++) {
+
+            switch (args[i]) {
+
+                case "--min-status":
+                    minStatus = Integer.parseInt(
+                        requireValue(args, ++i)
+                    );
+                    break;
+
+                case "--path-prefix":
+                    pathPrefix = requireValue(args, ++i);
+                    break;
+
+                case "--fields":
+                    fields = Arrays.stream(
+                        requireValue(args, ++i).split(",")
+                    ).map(String::trim)
+                     .toArray(String[]::new);
+                    break;
+
+                case "--output":
+                    outputFile = requireValue(args, ++i);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException(
+                        "Bilinmeyen parametre: " + args[i]
+                    );
+            }
+        }
+
+        ParserStage parser = new ParserStage();
+
+        PipelineBuilder<LogRecord> builder =
+            PipelineBuilder
+                .from(new FileLineSource(inputFile))
+                .via(parser);
+
+        if (minStatus != null) {
+            final int threshold = minStatus;
+
+            builder = builder.via(
+                new PredicateFilterStage(
+                    r -> r.status() >= threshold
+                )
             );
         }
+
+        if (pathPrefix != null) {
+            final String prefix = pathPrefix;
+
+            builder = builder.via(
+                new PredicateFilterStage(
+                    r -> r.path().startsWith(prefix)
+                )
+            );
+        }
+
+        Pipeline pipeline = builder
+            .via(new ProjectionStage(fields))
+            .to(new FileSink<>(outputFile));
+
+        pipeline.run();
+
+        System.out.println(
+            "Islem tamamlandi. Cikti: " + outputFile
+        );
+
+        System.out.println(
+            "Toplam hatali satir sayisi: "
+                + parser.getErrorCount()
+        );
+    }
+
+    private static String requireValue(
+        String[] args, int index
+    ) {
+        if (index >= args.length ||
+            args[index].startsWith("--")) {
+
+            throw new IllegalArgumentException(
+                "Parametre degeri eksik."
+            );
+        }
+
         return args[index];
     }
 
     private static void printUsage() {
+
+        System.out.println("LogFlow - Pipeline Sistemi");
+
         System.out.println(
-                "Kullanim: java Main <log-dosyasi> "
-                + "[--min-status 400] "
-                + "[--path-prefix /api] "
-                + "[--fields timestamp,clientIp,status] "
-                + "[--output output.log]"
+            "YAML: java -cp out Main --config configs/error-report.yaml"
+        );
+
+        System.out.println(
+            "Eski kullanim: java -cp out Main <log-dosyasi> "
+            + "[--min-status 400] "
+            + "[--path-prefix /api] "
+            + "[--fields timestamp,clientIp,status] "
+            + "[--output output.log]"
         );
     }
 }

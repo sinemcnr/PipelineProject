@@ -1,0 +1,5 @@
+{timestamp=2026-09-29T10:15:01Z, clientIp=127.0.0.1, status=200}
+{timestamp=2026-09-29T10:15:03Z, clientIp=192.168.1.10, status=200}
+{timestamp=2026-09-29T10:15:05Z, clientIp=10.0.0.5, status=403}
+{timestamp=2026-09-29T10:15:07Z, clientIp=172.16.0.8, status=200}
+{timestamp=2026-09-29T10:15:09Z, clientIp=192.168.1.15, status=200}

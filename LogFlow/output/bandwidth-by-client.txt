@@ -1,0 +1,5 @@
+{clientIp=127.0.0.1, bytes=512}
+{clientIp=192.168.1.10, bytes=245}
+{clientIp=10.0.0.5, bytes=128}
+{clientIp=172.16.0.8, bytes=1024}
+{clientIp=192.168.1.15, bytes=768}

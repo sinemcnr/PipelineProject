@@ -1,0 +1,1 @@
+{timestamp=2026-09-29T10:15:05Z, clientIp=10.0.0.5, status=403, path=/admin}
