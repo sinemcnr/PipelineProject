@@ -7,79 +7,66 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Common Log Format (CLF) satirlarini LogRecord nesnesine donusturur.
- *
- * Bu artimda hatali satirlar atlanir ve sayilir.
- * Hatalarin daha ayrintili ele alinmasi ilerleyen
- * artimlarda gelistirilecektir.
- */
 public class ParserStage implements Stage<String, LogRecord> {
 
-    /*
-     * Ornek desteklenen satir:
-     *
-     * 127.0.0.1 - - [29/Sep/2026:10:15:01]
-     * "GET /index.html HTTP/1.1" 200 512
-     *
-     * Opsiyonel olarak satirin sonunda tirnak icinde
-     * User-Agent bilgisi de bulunabilir.
-     */
     private static final Pattern LOG_PATTERN = Pattern.compile(
             "^(\\S+)\\s+\\S+\\s+\\S+\\s+\\[([^\\]]+)]\\s+\"(\\S+)\\s+([^\\s\"]+)(?:\\s+[^\"]+)?\"\\s+(\\S+)\\s+(\\S+)(?:\\s+\"([^\"]*)\")?\\s*$"
     );
 
-    /*
-     * access-small.log dosyasinda zaman dilimi bilgisi
-     * bulunmadigi icin tarih bu formata gore okunur.
-     */
     private static final DateTimeFormatter DATE_FORMAT =
             DateTimeFormatter.ofPattern(
-                    "dd/MMM/yyyy:HH:mm:ss",
+                    "dd/MMM/uuuu:HH:mm:ss",
                     Locale.ENGLISH
             );
 
     private int errorCount = 0;
 
+    private final boolean strict;
+
+    public ParserStage() {
+        this(false);
+    }
+
+    public ParserStage(boolean strict) {
+        this.strict = strict;
+    }
+
     @Override
     public void process(String input, Emitter<LogRecord> out)
             throws StageException {
 
-        /*
-         * Bos veya null satir gecersiz kabul edilir.
-         * Bu hafta hatali satirlar yalnizca atlanir ve sayilir.
-         */
         if (input == null || input.trim().isEmpty()) {
-            errorCount++;
+            reject("Bos log satiri", null);
+            return;
+        }
+
+        if (input.indexOf('\uFFFD') >= 0) {
+            reject("Gecersiz UTF-8 bayt dizisi", null);
             return;
         }
 
         Matcher matcher = LOG_PATTERN.matcher(input);
 
-        /*
-         * Satir beklenen log bicimine uymuyorsa
-         * kayit uretilmeden atlanir.
-         */
         if (!matcher.matches()) {
-            errorCount++;
+            reject("CLF bicimi gecersiz", null);
             return;
         }
+
+        LogRecord record;
 
         try {
 
             String clientIp = matcher.group(1);
 
-            /*
-             * Log dosyasinda timezone bilgisi bulunmadigi icin
-             * UTC varsayimi kullanilmistir.
-             */
-            Instant timestamp = LocalDateTime.parse(
+            LocalDateTime localDateTime = LocalDateTime.parse(
                     matcher.group(2),
                     DATE_FORMAT
-            ).toInstant(ZoneOffset.UTC);
+            );
+
+            Instant timestamp =
+                    localDateTime.toInstant(ZoneOffset.UTC);
 
             String method = matcher.group(3);
-
             String path = matcher.group(4);
 
             int status = Integer.parseInt(
@@ -98,22 +85,11 @@ public class ParserStage implements Stage<String, LogRecord> {
 
             String userAgent = matcher.group(7);
 
-            /*
-             * User-Agent bilgisi bulunmayan standart
-             * CLF satirlarinda bos String kullanilir.
-             */
             if (userAgent == null) {
                 userAgent = "";
             }
 
-            /*
-             * Ayrıştırilan bilgiler immutable LogRecord
-             * nesnesine aktarilir.
-             *
-             * attributes ilerleyen haftalarda yeni verilerin
-             * eklenebilmesi icin genisleme noktasidir.
-             */
-            LogRecord record = new LogRecord(
+            record = new LogRecord(
                     timestamp,
                     clientIp,
                     method,
@@ -125,26 +101,24 @@ public class ParserStage implements Stage<String, LogRecord> {
                     input
             );
 
-            /*
-             * Basarili kayit pipeline'in sonraki
-             * asamasina gonderilir.
-             */
-            out.emit(record);
+        } catch (RuntimeException e) {
+            reject("Log ayrıştırma hatasi", e);
+            return;
+        }
 
-        } catch (Exception e) {
+        out.emit(record);
+    }
 
-            /*
-             * Tarih, status veya bytes gibi alanlar
-             * ayrıştırılamazsa satir hatali kabul edilir.
-             */
-            errorCount++;
+    private void reject(String reason, Throwable cause)
+            throws StageException {
+
+        errorCount++;
+
+        if (strict) {
+            throw new StageException(reason, cause);
         }
     }
 
-    /**
-     * Ayrıştırma sırasında atlanan toplam
-     * hatali satir sayisini dondurur.
-     */
     public int getErrorCount() {
         return errorCount;
     }
